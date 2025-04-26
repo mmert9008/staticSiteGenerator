@@ -1,15 +1,15 @@
 import unittest
 
-# Assuming TextNode, TextType are in textnode.py
+# Import TextNode and TextType for assertions
 from textnode import TextNode, TextType
 
-# Assuming extract_markdown_images, extract_markdown_links,
-# split_nodes_image, and split_nodes_link are in markdown_utils.py
+# Import functions from markdown_utils.py
 from markdown_utils import (
     extract_markdown_images,
     extract_markdown_links,
     split_nodes_image,
     split_nodes_link,
+    markdown_to_blocks, # Ensure markdown_to_blocks is imported
 )
 
 
@@ -144,7 +144,7 @@ class TestMarkdownUtils(unittest.TestCase):
         self.assertListEqual([("image", "image.png"), ("img2", "url2")], matches_images)
 
 
-    # --- Split Image Tests ---
+    # --- Split Image Tests (Keep existing tests) ---
 
     def test_split_images(self):
         """
@@ -279,7 +279,7 @@ class TestMarkdownUtils(unittest.TestCase):
         self.assertEqual(new_nodes[4], TextNode(" more text", TextType.TEXT)) # Trailing text from node3
 
 
-    # --- Split Link Tests ---
+    # --- Split Link Tests (Keep existing tests) ---
 
     def test_split_links(self):
         """
@@ -450,6 +450,103 @@ class TestMarkdownUtils(unittest.TestCase):
         self.assertEqual(nodes_after_link_split[6], TextNode(" text ", TextType.TEXT)) # Before [link2](u4)
         self.assertEqual(nodes_after_link_split[7], TextNode("link2", TextType.LINK, "u4")) # The [link2](u4) node
         self.assertEqual(nodes_after_link_split[8], TextNode(" text", TextType.TEXT)) # After [link2](u4)
+
+
+    # --- markdown_to_blocks tests ---
+
+    def test_markdown_to_blocks_basic(self):
+        """
+        Tests splitting a simple markdown string into blocks. (Provided test example structure)
+        """
+        md = """
+This is **bolded** paragraph
+
+This is another paragraph with _italic_ text and `code` here
+This is the same paragraph on a new line
+
+- This is a list
+- with items
+"""
+        blocks = markdown_to_blocks(md)
+        self.assertEqual(len(blocks), 3) # Check the number of blocks
+        self.assertEqual(
+            blocks,
+            [
+                "This is **bolded** paragraph",
+                "This is another paragraph with _italic_ text and `code` here\nThis is the same paragraph on a new line",
+                "- This is a list\n- with items",
+            ],
+        )
+
+    def test_markdown_to_blocks_leading_trailing_whitespace(self):
+        """
+        Tests stripping leading/trailing whitespace from blocks.
+        """
+        md = """
+
+  Block 1 with whitespace
+
+    Block 2
+
+"""
+        blocks = markdown_to_blocks(md)
+        self.assertEqual(len(blocks), 2)
+        self.assertEqual(blocks, ["Block 1 with whitespace", "Block 2"])
+
+    def test_markdown_to_blocks_excessive_newlines(self):
+        """
+        Tests handling excessive newlines between blocks, resulting in empty blocks being removed.
+        """
+        md = """
+Block 1
+
+
+
+Block 2
+
+
+Block 3
+
+"""
+        blocks = markdown_to_blocks(md)
+        self.assertEqual(len(blocks), 3)
+        self.assertEqual(blocks, ["Block 1", "Block 2", "Block 3"])
+
+    def test_markdown_to_blocks_empty_string(self):
+        """
+        Tests handling an empty input markdown string.
+        """
+        md = ""
+        blocks = markdown_to_blocks(md)
+        self.assertEqual(len(blocks), 0)
+        self.assertEqual(blocks, [])
+
+    def test_markdown_to_blocks_single_block(self):
+        """
+        Tests handling markdown with no double newlines (should result in one block).
+        """
+        md = "This is just one block.\nThis is the same block on a new line."
+        blocks = markdown_to_blocks(md)
+        self.assertEqual(len(blocks), 1)
+        self.assertEqual(blocks, ["This is just one block.\nThis is the same block on a new line."])
+
+    def test_markdown_to_blocks_only_whitespace(self):
+        """
+        Tests handling a markdown string that contains only whitespace.
+        """
+        md = "   \n\n \t \n \n\n  "
+        blocks = markdown_to_blocks(md)
+        self.assertEqual(len(blocks), 0)
+        self.assertEqual(blocks, [])
+
+    def test_markdown_to_blocks_block_with_only_whitespace(self):
+        """
+        Tests handling a markdown string with a block that contains only whitespace (should be removed).
+        """
+        md = "Block 1\n\n   \n\nBlock 2"
+        blocks = markdown_to_blocks(md)
+        self.assertEqual(len(blocks), 2)
+        self.assertEqual(blocks, ["Block 1", "Block 2"])
 
 
 if __name__ == "__main__":

@@ -1,5 +1,5 @@
 import re
-from textnode import TextNode, TextType
+# Note: TextNode and TextType are imported inside the split functions below
 
 
 def extract_markdown_images(text):
@@ -13,6 +13,8 @@ def extract_markdown_links(text):
 
 
 def split_nodes_image(old_nodes):
+    # Import moved inside function to avoid circular dependency at top level
+    from textnode import TextNode, TextType
     new_nodes = []
     for node in old_nodes:
         if node.text_type != TextType.TEXT:
@@ -48,6 +50,8 @@ def split_nodes_image(old_nodes):
 
 
 def split_nodes_link(old_nodes):
+    # Import moved inside function to avoid circular dependency at top level
+    from textnode import TextNode, TextType
     new_nodes = []
     for node in old_nodes:
         if node.text_type != TextType.TEXT:
@@ -79,6 +83,15 @@ def split_nodes_link(old_nodes):
         else:
              new_nodes.extend(current_nodes_for_this_text_node)
 
-
     return new_nodes
+
+
+def markdown_to_blocks(markdown):
+    blocks = markdown.split("\n\n")
+    filtered_blocks = []
+    for block in blocks:
+        stripped_block = block.strip()
+        if stripped_block != "":
+            filtered_blocks.append(stripped_block)
+    return filtered_blocks
 

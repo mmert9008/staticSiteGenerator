@@ -1,8 +1,14 @@
 import unittest
 
-# Assuming TextNode, TextType, and split_nodes_delimiter are in textnode.py within the src directory
-# Assuming LeafNode is in htmlnode.py within the src directory
-from textnode import TextNode, TextType, text_node_to_html_node, split_nodes_delimiter
+# Import everything needed from textnode.py
+from textnode import (
+    TextNode,
+    TextType,
+    text_node_to_html_node,
+    split_nodes_delimiter, # Correctly import from textnode
+    text_to_textnodes,
+)
+# Import LeafNode from htmlnode.py
 from htmlnode import LeafNode
 
 
@@ -11,7 +17,7 @@ class TestTextNode(unittest.TestCase):
     Unit tests for the TextNode class and related functions.
     """
 
-    # --- TextNode equality tests ---
+    # --- TextNode equality tests (Keep existing tests) ---
 
     def test_eq(self):
         """
@@ -70,7 +76,7 @@ class TestTextNode(unittest.TestCase):
         self.assertNotEqual(node, node2)
 
 
-    # --- text_node_to_html_node tests ---
+    # --- text_node_to_html_node tests (Keep existing tests) ---
 
     def test_text_node_to_html_node_text(self):
         """
@@ -150,7 +156,7 @@ class TestTextNode(unittest.TestCase):
             text_node_to_html_node(node)
         self.assertIn("Invalid text type:", str(cm.exception))
 
-    # --- split_nodes_delimiter tests ---
+    # --- split_nodes_delimiter tests (Keep existing tests) ---
 
     def test_split_one_delimiter(self):
         """
@@ -169,7 +175,7 @@ class TestTextNode(unittest.TestCase):
         """
         node = TextNode("`code1` text `code2` more text", TextType.TEXT)
         new_nodes = split_nodes_delimiter([node], "`", TextType.CODE)
-        self.assertEqual(len(new_nodes), 4)
+        self.assertEqual(len(new_nodes), 4) # Corrected expected length
         self.assertEqual(new_nodes[0], TextNode("code1", TextType.CODE))
         self.assertEqual(new_nodes[1], TextNode(" text ", TextType.TEXT))
         self.assertEqual(new_nodes[2], TextNode("code2", TextType.CODE))
@@ -263,7 +269,84 @@ class TestTextNode(unittest.TestCase):
         self.assertEqual(len(new_nodes), 0)
         self.assertEqual(new_nodes, [])
 
+    # --- text_to_textnodes tests ---
+
+    def test_text_to_textnodes_all_types(self):
+        """
+        Tests converting text with all inline types. (Provided example)
+        """
+        text = "This is **text** with an _italic_ word and a `code block` and an ![obi wan image](https://i.imgur.com/fJRm4Vk.jpeg) and a [link](https://boot.dev)"
+        expected_nodes = [
+            TextNode("This is ", TextType.TEXT),
+            TextNode("text", TextType.BOLD),
+            TextNode(" with an ", TextType.TEXT),
+            TextNode("italic", TextType.ITALIC),
+            TextNode(" word and a ", TextType.TEXT),
+            TextNode("code block", TextType.CODE),
+            TextNode(" and an ", TextType.TEXT),
+            TextNode("obi wan image", TextType.IMAGE, "https://i.imgur.com/fJRm4Vk.jpeg"),
+            TextNode(" and a ", TextType.TEXT),
+            TextNode("link", TextType.LINK, "https://boot.dev"),
+        ]
+        self.assertListEqual(expected_nodes, text_to_textnodes(text))
+
+    def test_text_to_textnodes_no_special_syntax(self):
+        """
+        Tests converting text with no special inline syntax.
+        """
+        text = "This is just plain text."
+        expected_nodes = [TextNode("This is just plain text.", TextType.TEXT)]
+        self.assertListEqual(expected_nodes, text_to_textnodes(text))
+
+    def test_text_to_textnodes_only_one_type(self):
+        """
+        Tests converting text with only one type of inline syntax (e.g., only bold).
+        """
+        text = "This is **bold** text."
+        expected_nodes = [
+            TextNode("This is ", TextType.TEXT),
+            TextNode("bold", TextType.BOLD),
+            TextNode(" text.", TextType.TEXT),
+        ]
+        self.assertListEqual(expected_nodes, text_to_textnodes(text))
+
+    def test_text_to_textnodes_multiple_of_one_type(self):
+        """
+        Tests converting text with multiple instances of the same type (e.g., two code blocks).
+        """
+        text = "Code `block1` and `block2` here."
+        expected_nodes = [
+            TextNode("Code ", TextType.TEXT),
+            TextNode("block1", TextType.CODE),
+            TextNode(" and ", TextType.TEXT),
+            TextNode("block2", TextType.CODE),
+            TextNode(" here.", TextType.TEXT),
+        ]
+        self.assertListEqual(expected_nodes, text_to_textnodes(text))
+
+    def test_text_to_textnodes_mixed_order(self):
+        """
+        Tests converting text with mixed types in a different order than the example.
+        """
+        text = "`code` first, then **bold**, then _italic_."
+        expected_nodes = [
+            TextNode("code", TextType.CODE),
+            TextNode(" first, then ", TextType.TEXT),
+            TextNode("bold", TextType.BOLD),
+            TextNode(", then ", TextType.TEXT),
+            TextNode("italic", TextType.ITALIC),
+            TextNode(".", TextType.TEXT),
+        ]
+        self.assertListEqual(expected_nodes, text_to_textnodes(text))
+
+    def test_text_to_textnodes_empty_string(self):
+        """
+        Tests converting an empty string.
+        """
+        text = ""
+        expected_nodes = []
+        self.assertListEqual(expected_nodes, text_to_textnodes(text))
+
 
 if __name__ == "__main__":
     unittest.main()
-
