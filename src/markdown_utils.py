@@ -1,5 +1,18 @@
 import re
+from enum import Enum
 # Note: TextNode and TextType are imported inside the split functions below
+
+
+class BlockType(Enum):
+    """
+    Represents the different types of Markdown blocks.
+    """
+    PARAGRAPH = "paragraph"
+    HEADING = "heading"
+    CODE = "code"
+    QUOTE = "quote"
+    UNORDERED_LIST = "unordered_list"
+    ORDERED_LIST = "ordered_list"
 
 
 def extract_markdown_images(text):
@@ -94,4 +107,40 @@ def markdown_to_blocks(markdown):
         if stripped_block != "":
             filtered_blocks.append(stripped_block)
     return filtered_blocks
+
+
+def block_to_block_type(block):
+    """
+    Determines the block type of a single markdown block string.
+    Assumes the block has already been stripped of leading/trailing whitespace.
+    """
+    lines = block.split('\n')
+
+    # Check for quote block (every line starts with >)
+    if all(line.startswith(">") for line in lines):
+        return BlockType.QUOTE
+
+    # Check for unordered list (every line starts with - )
+    if all(line.startswith("- ") for line in lines):
+        return BlockType.UNORDERED_LIST
+
+    # Check for ordered list (every line starts with number. )
+    is_ordered_list = True
+    for i, line in enumerate(lines):
+        if not line.startswith(f"{i + 1}. "):
+            is_ordered_list = False
+            break
+    if is_ordered_list:
+        return BlockType.ORDERED_LIST
+
+    # Check for heading (starts with 1-6 # followed by space, single line)
+    if re.match(r"#{1,6} ", block) and len(lines) == 1:
+        return BlockType.HEADING
+
+    # Check for code block (starts and ends with ```)
+    if block.startswith("```") and block.endswith("```"):
+        return BlockType.CODE
+
+    # If none of the above, it's a paragraph
+    return BlockType.PARAGRAPH
 

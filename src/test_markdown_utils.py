@@ -3,13 +3,15 @@ import unittest
 # Import TextNode and TextType for assertions
 from textnode import TextNode, TextType
 
-# Import functions from markdown_utils.py
+# Import functions and enums from markdown_utils.py
 from markdown_utils import (
     extract_markdown_images,
     extract_markdown_links,
     split_nodes_image,
     split_nodes_link,
-    markdown_to_blocks, # Ensure markdown_to_blocks is imported
+    markdown_to_blocks,
+    BlockType, # Import the BlockType enum
+    block_to_block_type, # Import the new function
 )
 
 
@@ -547,6 +549,150 @@ Block 3
         blocks = markdown_to_blocks(md)
         self.assertEqual(len(blocks), 2)
         self.assertEqual(blocks, ["Block 1", "Block 2"])
+
+
+    # --- block_to_block_type tests --- # Added tests for block_to_block_type
+
+    def test_block_to_block_type_paragraph(self):
+        """
+        Tests identifying a paragraph block.
+        """
+        block = "This is a regular paragraph with some text."
+        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
+
+    def test_block_to_block_type_paragraph_with_newlines(self):
+        """
+        Tests identifying a paragraph block that spans multiple lines.
+        """
+        block = "This is a regular paragraph line 1.\nThis is line 2."
+        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
+
+    def test_block_to_block_type_heading(self):
+        """
+        Tests identifying heading blocks (H1-H6).
+        """
+        self.assertEqual(block_to_block_type("# Heading 1"), BlockType.HEADING)
+        self.assertEqual(block_to_block_type("## Heading 2"), BlockType.HEADING)
+        self.assertEqual(block_to_block_type("### Heading 3"), BlockType.HEADING)
+        self.assertEqual(block_to_block_type("#### Heading 4"), BlockType.HEADING)
+        self.assertEqual(block_to_block_type("##### Heading 5"), BlockType.HEADING)
+        self.assertEqual(block_to_block_type("###### Heading 6"), BlockType.HEADING)
+
+    def test_block_to_block_type_heading_no_space(self):
+        """
+        Tests that text looking like a heading but missing the space is a paragraph.
+        """
+        self.assertEqual(block_to_block_type("##HeadingWithoutSpace"), BlockType.PARAGRAPH)
+        self.assertEqual(block_to_block_type("#JustText"), BlockType.PARAGRAPH)
+
+    def test_block_to_block_type_heading_too_many_hashes(self):
+        """
+        Tests that text with more than 6 hashes is a paragraph.
+        """
+        self.assertEqual(block_to_block_type("####### Not a heading"), BlockType.PARAGRAPH)
+
+    def test_block_to_block_type_code(self):
+        """
+        Tests identifying a code block.
+        """
+        block = "```\nprint('Hello, World!')\n```"
+        self.assertEqual(block_to_block_type(block), BlockType.CODE)
+
+    def test_block_to_block_type_code_single_line(self):
+        """
+        Tests identifying a single-line code block.
+        """
+        block = "``` single line code ```"
+        self.assertEqual(block_to_block_type(block), BlockType.CODE)
+
+    def test_block_to_block_type_code_missing_backticks(self):
+        """
+        Tests that blocks missing start or end backticks are not code blocks.
+        """
+        self.assertEqual(block_to_block_type("```code block"), BlockType.PARAGRAPH)
+        self.assertEqual(block_to_block_type("code block```"), BlockType.PARAGRAPH)
+        self.assertEqual(block_to_block_type("code block"), BlockType.PARAGRAPH)
+
+    def test_block_to_block_type_quote(self):
+        """
+        Tests identifying a quote block.
+        """
+        block = "> This is a quote.\n> This is the second line.\n> " # Includes empty line
+        self.assertEqual(block_to_block_type(block), BlockType.QUOTE)
+
+    def test_block_to_block_type_quote_single_line(self):
+        """
+        Tests identifying a single-line quote block.
+        """
+        block = "> single line quote"
+        self.assertEqual(block_to_block_type(block), BlockType.QUOTE)
+
+    def test_block_to_block_type_quote_mixed_lines(self):
+        """
+        Tests that a block is not a quote if not all lines start with '>'.
+        """
+        block = "> quote line 1\nnot a quote line"
+        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
+
+    def test_block_to_block_type_unordered_list(self):
+        """
+        Tests identifying an unordered list block.
+        """
+        block = "- Item 1\n- Item 2\n- Item 3"
+        self.assertEqual(block_to_block_type(block), BlockType.UNORDERED_LIST)
+
+    def test_block_to_block_type_unordered_list_single_item(self):
+        """
+        Tests identifying a single-item unordered list block.
+        """
+        block = "- Single item"
+        self.assertEqual(block_to_block_type(block), BlockType.UNORDERED_LIST)
+
+    def test_block_to_block_type_unordered_list_mixed_lines(self):
+        """
+        Tests that a block is not an unordered list if not all lines start with '- '.
+        """
+        block = "- Item 1\nNot a list item\n- Item 3"
+        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
+
+    def test_block_to_block_type_unordered_list_wrong_delimiter(self):
+        """
+        Tests that blocks with wrong unordered list delimiters are paragraphs.
+        """
+        self.assertEqual(block_to_block_type("* Item 1"), BlockType.PARAGRAPH) # '*' is also a list delimiter, but test only checks for '-'
+        self.assertEqual(block_to_block_type("+ Item 1"), BlockType.PARAGRAPH) # '+' is also a list delimiter, but test only checks for '-'
+        self.assertEqual(block_to_block_type("-NoSpace"), BlockType.PARAGRAPH)
+
+    def test_block_to_block_type_ordered_list(self):
+        """
+        Tests identifying an ordered list block with correct numbering.
+        """
+        block = "1. Item 1\n2. Item 2\n3. Item 3"
+        self.assertEqual(block_to_block_type(block), BlockType.ORDERED_LIST)
+
+    def test_block_to_block_type_ordered_list_single_item(self):
+        """
+        Tests identifying a single-item ordered list block starting with 1.
+        """
+        block = "1. Single item"
+        self.assertEqual(block_to_block_type(block), BlockType.ORDERED_LIST)
+
+    def test_block_to_block_type_ordered_list_mixed_lines(self):
+        """
+        Tests that a block is not an ordered list if the numbering is incorrect or lines don't follow the pattern.
+        """
+        block = "1. Item 1\n2. Item 2\nNot an ordered item"
+        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
+
+    def test_block_to_block_type_ordered_list_wrong_numbering(self):
+        """
+        Tests that blocks with incorrect ordered list numbering are paragraphs.
+        """
+        self.assertEqual(block_to_block_type("2. Item 1\n3. Item 2"), BlockType.PARAGRAPH) # Doesn't start at 1
+        self.assertEqual(block_to_block_type("1. Item 1\n3. Item 2"), BlockType.PARAGRAPH) # Skips a number
+        self.assertEqual(block_to_block_type("1. Item 1\n1. Item 2"), BlockType.PARAGRAPH) # Repeats a number
+        self.assertEqual(block_to_block_type("1: Item 1\n2: Item 2"), BlockType.PARAGRAPH) # Wrong format (colon instead of dot)
+        self.assertEqual(block_to_block_type("1.NoSpace"), BlockType.PARAGRAPH)
 
 
 if __name__ == "__main__":
