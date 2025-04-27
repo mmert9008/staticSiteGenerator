@@ -1,19 +1,44 @@
-#!/usr/bin/env python3
+import os
+import shutil
+import sys
 
-from textnode import TextNode, TextType
+from markdown_utils import copy_contents_recursive
+from page_generator import generate_page
+
 
 def main():
-    # Create a dummy TextNode object
-    dummy_node = TextNode("This is some test text.", TextType.TEXT, None)
-    print(dummy_node)
+    print("Starting static site generation...")
 
-    # Create a link node example
-    link_node = TextNode("Google", TextType.LINK, "https://www.google.com")
-    print(link_node)
+    static_dir_path = "static"
+    public_dir_path = "public"
+    content_path = "content"
+    template_path = "template.html" # Assuming template.html is in the root
 
-    # Create an image node example
-    image_node = TextNode("Python Logo", TextType.IMAGE, "https://www.python.org/static/community_logos/python-logo-master-v3-TM.png")
-    print(image_node)
+    # Check if the static directory exists
+    if not os.path.exists(static_dir_path):
+        print(f"Error: Static directory not found at {static_dir_path}")
+        sys.exit(1)
+
+    # Clean destination directory if it exists
+    if os.path.exists(public_dir_path):
+        print(f"Cleaning destination directory: {public_dir_path}")
+        shutil.rmtree(public_dir_path)
+
+    # Create destination directory
+    print(f"Creating destination directory: {public_dir_path}")
+    os.mkdir(public_dir_path)
+
+    # Copy static files from static to public
+    copy_contents_recursive(static_dir_path, public_dir_path)
+
+    # Generate the index page
+    index_md_path = os.path.join(content_path, "index.md")
+    index_html_path = os.path.join(public_dir_path, "index.html")
+    generate_page(index_md_path, template_path, index_html_path)
+
+
+    print("Static site generation finished.")
+
 
 if __name__ == "__main__":
     main()

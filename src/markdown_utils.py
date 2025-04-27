@@ -1,12 +1,11 @@
 import re
 from enum import Enum
-# Note: TextNode and TextType are imported inside the split functions below
+import os
+import shutil
+import sys
 
 
 class BlockType(Enum):
-    """
-    Represents the different types of Markdown blocks.
-    """
     PARAGRAPH = "paragraph"
     HEADING = "heading"
     CODE = "code"
@@ -26,7 +25,6 @@ def extract_markdown_links(text):
 
 
 def split_nodes_image(old_nodes):
-    # Import moved inside function to avoid circular dependency at top level
     from textnode import TextNode, TextType
     new_nodes = []
     for node in old_nodes:
@@ -63,7 +61,6 @@ def split_nodes_image(old_nodes):
 
 
 def split_nodes_link(old_nodes):
-    # Import moved inside function to avoid circular dependency at top level
     from textnode import TextNode, TextType
     new_nodes = []
     for node in old_nodes:
@@ -110,21 +107,14 @@ def markdown_to_blocks(markdown):
 
 
 def block_to_block_type(block):
-    """
-    Determines the block type of a single markdown block string.
-    Assumes the block has already been stripped of leading/trailing whitespace.
-    """
     lines = block.split('\n')
 
-    # Check for quote block (every line starts with >)
     if all(line.startswith(">") for line in lines):
         return BlockType.QUOTE
 
-    # Check for unordered list (every line starts with - )
     if all(line.startswith("- ") for line in lines):
         return BlockType.UNORDERED_LIST
 
-    # Check for ordered list (every line starts with number. )
     is_ordered_list = True
     for i, line in enumerate(lines):
         if not line.startswith(f"{i + 1}. "):
@@ -133,14 +123,45 @@ def block_to_block_type(block):
     if is_ordered_list:
         return BlockType.ORDERED_LIST
 
-    # Check for heading (starts with 1-6 # followed by space, single line)
     if re.match(r"#{1,6} ", block) and len(lines) == 1:
         return BlockType.HEADING
 
-    # Check for code block (starts and ends with ```)
     if block.startswith("```") and block.endswith("```"):
         return BlockType.CODE
 
-    # If none of the above, it's a paragraph
     return BlockType.PARAGRAPH
+
+
+def copy_contents_recursive(source_dir_path, dest_dir_path):
+    print(f"Copying contents from {source_dir_path} to {dest_dir_path}")
+
+    try:
+        dir_contents = os.listdir(source_dir_path)
+    except FileNotFoundError:
+        print(f"Error: Source directory not found at {source_dir_path}")
+        return
+
+    if not os.path.exists(dest_dir_path):
+        os.mkdir(dest_dir_path)
+
+    for item_name in dir_contents:
+        source_item_path = os.path.join(source_dir_path, item_name)
+        dest_item_path = os.path.join(dest_dir_path, item_name)
+
+        if os.path.isfile(source_item_path):
+            print(f"  Copying file: {source_item_path} to {dest_item_path}")
+            shutil.copy(source_item_path, dest_item_path)
+
+        elif os.path.isdir(source_item_path):
+            print(f"  Creating directory: {dest_item_path}")
+            copy_contents_recursive(source_item_path, dest_item_path)
+
+
+def extract_title(markdown):
+    lines = markdown.split('\n')
+    for line in lines:
+        if line.startswith("# "):
+            return line[2:].strip()
+
+    raise ValueError("Markdown must contain an H1 header (line starting with # )")
 
