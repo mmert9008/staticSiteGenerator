@@ -6,7 +6,7 @@ from markdown_converter import markdown_to_html_node
 from markdown_utils import extract_title
 
 
-def generate_page(from_path, template_path, dest_path):
+def generate_page(from_path, template_path, dest_path, basepath):
     print(f"Generating page from {from_path} to {dest_path} using {template_path}")
 
     if not os.path.exists(from_path):
@@ -45,6 +45,10 @@ def generate_page(from_path, template_path, dest_path):
 
     final_html = template_content.replace("{{ Title }}", page_title).replace("{{ Content }}", html_content)
 
+    final_html = final_html.replace('href="/', f'href="{basepath}')
+    final_html = final_html.replace('src="/', f'src="{basepath}')
+
+
     dest_dir = os.path.dirname(dest_path)
     if dest_dir:
         os.makedirs(dest_dir, exist_ok=True)
@@ -57,7 +61,7 @@ def generate_page(from_path, template_path, dest_path):
         return
 
 
-def generate_pages_recursive(current_content_path, template_path, current_dest_path):
+def generate_pages_recursive(current_content_path, template_path, current_dest_path, basepath):
     print(f"Processing directory: {current_content_path}")
 
     if not os.path.exists(current_content_path):
@@ -75,8 +79,8 @@ def generate_pages_recursive(current_content_path, template_path, current_dest_p
         if os.path.isfile(src_item_path):
             if item_name.endswith(".md"):
                 dest_html_path = dest_item_path_base[:-3] + ".html"
-                generate_page(src_item_path, template_path, dest_html_path)
+                generate_page(src_item_path, template_path, dest_html_path, basepath)
 
         elif os.path.isdir(src_item_path):
-            generate_pages_recursive(src_item_path, template_path, dest_item_path_base)
+            generate_pages_recursive(src_item_path, template_path, dest_item_path_base, basepath)
 
